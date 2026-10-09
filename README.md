@@ -1,6 +1,6 @@
 # Coverage Disruption Value (CDV) — what each coverage and pass rush takes away
 
-### ▶ Live dashboard: https://ryumichalski.github.io/nfl-expected-completion/
+### ▶ Live dashboard: https://ryumichalski.github.io/nfl-coverage-disruption-value/
 
 I started from **Expected Completion (xComp)**, basically Expected Goals for NFL passing: a simple
 model of how likely each pass was to be completed given the coverage, down, distance, play-action,
