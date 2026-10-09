@@ -1,16 +1,16 @@
 # Expected Completion (xComp) — how coverage and pressure change the odds of a completion
 
-I built **Expected Completion (xComp)** — "Expected Goals for NFL passing" — a simple, calibrated
-model that estimates how likely each pass was to be completed given the situation it was thrown
-into: defensive coverage, down, distance, play-action, and whether the quarterback faced pressure.
-Rather than judging a throw by whether it was caught, it measures **Completion Over Expected
-(COE = actual − xComp)** to reveal which passes beat the odds and how much each coverage, amplified
-by pressure, suppresses completion (league-wide, expected completion falls from ~66% clean to ~54%
-under pressure, with man coverages the hardest to beat). It is built for **coaches, scouts, and
-broadcasters** — a defensive coordinator can see which coverages most limit completions, and a
-broadcaster can instantly frame a play ("that was a 42% throw") — and ships as a self-contained
-interactive dashboard with a play predictor, validated out-of-fold and across time rather than
-presented as a black box.
+I built **Expected Completion (xComp)**, basically Expected Goals for NFL passing. It is a simple
+model that estimates how likely each pass was to be completed based on the coverage, down,
+distance, play-action, and whether the quarterback was pressured. Instead of just looking at
+whether a pass was caught, it measures **Completion Over Expected (actual minus xComp)** so you can
+see which throws beat the odds and how much each coverage, especially under pressure, drags
+completion down (across the league, expected completion drops from about 66% clean to 54% under
+pressure, and man coverage is the toughest to throw against). I built it for coaches, scouts, and
+broadcasters: a defensive coordinator can see which coverages limit completions the most, and a
+broadcaster can quickly put a play in context, like calling out a 42% throw. It ships as a
+self-contained interactive dashboard with a play predictor, and the model is checked on held-out
+games and later weeks so you can trust the numbers.
 
 ![Expected Completion by coverage × pressure](docs/screenshot.svg)
 
