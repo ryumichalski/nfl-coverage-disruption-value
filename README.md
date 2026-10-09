@@ -1,15 +1,16 @@
 # Expected Completion (xComp) — how coverage and pressure change the odds of a completion
 
-**Question:** given the defensive picture a quarterback faces — coverage scheme, down,
-distance, play-action, and whether the pass rush got home — how likely is the pass to be
-completed, and which situations beat that expectation? **Metric:** `xComp`, a calibrated,
-cross-validated completion probability for each pass attempt, with **Completion Over Expected
-(COE) = actual − xComp** for a single play. **Coaching/broadcast value:** it turns a raw
-completion into context ("that was a 42% throw"), and shows how much each coverage suppresses
-completion and how far pressure drags it down — expected completion falls from **66% clean to
-54% under pressure** league-wide, and man-heavy shells (Cover-1/Cover-0) are the hardest to
-complete against. It is a reusable play-level model (it scores any future play with the same
-schema), deliberately **not** a season-long QB ranking.
+I built **Expected Completion (xComp)** — "Expected Goals for NFL passing" — a simple, calibrated
+model that estimates how likely each pass was to be completed given the situation it was thrown
+into: defensive coverage, down, distance, play-action, and whether the quarterback faced pressure.
+Rather than judging a throw by whether it was caught, it measures **Completion Over Expected
+(COE = actual − xComp)** to reveal which passes beat the odds and how much each coverage, amplified
+by pressure, suppresses completion (league-wide, expected completion falls from ~66% clean to ~54%
+under pressure, with man coverages the hardest to beat). It is built for **coaches, scouts, and
+broadcasters** — a defensive coordinator can see which coverages most limit completions, and a
+broadcaster can instantly frame a play ("that was a 42% throw") — and ships as a self-contained
+interactive dashboard with a play predictor, validated out-of-fold and across time rather than
+presented as a black box.
 
 ![Expected Completion by coverage × pressure](docs/screenshot.svg)
 
