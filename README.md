@@ -8,9 +8,7 @@ see which throws beat the odds and how much each coverage, especially under pres
 completion down (across the league, expected completion drops from about 66% clean to 54% under
 pressure, and man coverage is the toughest to throw against). I built it for coaches, scouts, and
 broadcasters: a defensive coordinator can see which coverages limit completions the most, and a
-broadcaster can quickly put a play in context, like calling out a 42% throw. It ships as a
-self-contained interactive dashboard with a play predictor, and the model is checked on held-out
-games and later weeks so you can trust the numbers.
+broadcaster can quickly put a play in context, like calling out a 42% throw.
 
 ![Expected Completion by coverage × pressure](docs/screenshot.svg)
 
