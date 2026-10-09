@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="406" font-family="Arial" style="background:#0e1116">
+<text x="20" y="30" fill="#e6edf3" font-size="18" font-weight="bold">Expected Completion by Coverage × Pressure</text>
+<text x="20" y="50" fill="#8b949e" font-size="12">mean xComp · clean vs pressured · 2021 (NGS + PFF)</text>
+<text x="220.0" y="62" fill="#8b949e" font-size="12" text-anchor="middle">Clean</text>
+<text x="340.0" y="62" fill="#8b949e" font-size="12" text-anchor="middle">Pressured</text>
+<text x="460.0" y="62" fill="#8b949e" font-size="12" text-anchor="middle">Δ pressure</text>
+<text x="148" y="91.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Cover-1</text>
+<rect x="160" y="70" width="116" height="30" fill="rgb(217,177,16)"/>
+<text x="218.0" y="91.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">60%</text>
+<rect x="280" y="70" width="116" height="30" fill="rgb(204,115,30)"/>
+<text x="338.0" y="91.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">50%</text>
+<text x="458.0" y="91.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-10 pp</text>
+<text x="148" y="125.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Cover-0</text>
+<rect x="160" y="104" width="116" height="30" fill="rgb(209,177,18)"/>
+<text x="218.0" y="125.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">61%</text>
+<rect x="280" y="104" width="116" height="30" fill="rgb(214,165,19)"/>
+<text x="338.0" y="125.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">58%</text>
+<text x="458.0" y="125.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-3 pp</text>
+<text x="148" y="159.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">2-Man</text>
+<rect x="160" y="138" width="116" height="30" fill="rgb(197,173,21)"/>
+<text x="218.0" y="159.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">62%</text>
+<rect x="280" y="138" width="116" height="30" fill="rgb(214,164,19)"/>
+<text x="338.0" y="159.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">57%</text>
+<text x="458.0" y="159.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-4 pp</text>
+<text x="148" y="193.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Red Zone</text>
+<rect x="160" y="172" width="116" height="30" fill="rgb(192,171,22)"/>
+<text x="218.0" y="193.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">62%</text>
+<rect x="280" y="172" width="116" height="30" fill="rgb(211,150,22)"/>
+<text x="338.0" y="193.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">55%</text>
+<text x="458.0" y="193.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-7 pp</text>
+<text x="148" y="227.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Bracket</text>
+<rect x="160" y="206" width="116" height="30" fill="rgb(190,171,22)"/>
+<text x="218.0" y="227.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">62%</text>
+<rect x="280" y="206" width="116" height="30" fill="#161b22"/>
+<text x="148" y="261.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Quarters</text>
+<rect x="160" y="240" width="116" height="30" fill="rgb(123,150,38)"/>
+<text x="218.0" y="261.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">67%</text>
+<rect x="280" y="240" width="116" height="30" fill="rgb(210,144,24)"/>
+<text x="338.0" y="261.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">54%</text>
+<text x="458.0" y="261.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-13 pp</text>
+<text x="148" y="295.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Cover-6</text>
+<rect x="160" y="274" width="116" height="30" fill="rgb(115,147,40)"/>
+<text x="218.0" y="295.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">68%</text>
+<rect x="280" y="274" width="116" height="30" fill="rgb(211,150,22)"/>
+<text x="338.0" y="295.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">55%</text>
+<text x="458.0" y="295.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-13 pp</text>
+<text x="148" y="329.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Cover-2</text>
+<rect x="160" y="308" width="116" height="30" fill="rgb(108,145,41)"/>
+<text x="218.0" y="329.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">69%</text>
+<rect x="280" y="308" width="116" height="30" fill="rgb(216,174,17)"/>
+<text x="338.0" y="329.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">59%</text>
+<text x="458.0" y="329.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-9 pp</text>
+<text x="148" y="363.0" fill="#e6edf3" font-size="13" text-anchor="end" font-weight="bold">Cover-3</text>
+<rect x="160" y="342" width="116" height="30" fill="rgb(90,140,45)"/>
+<text x="218.0" y="363.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">70%</text>
+<rect x="280" y="342" width="116" height="30" fill="rgb(211,150,22)"/>
+<text x="338.0" y="363.0" fill="#06240f" font-size="14" font-weight="bold" text-anchor="middle">55%</text>
+<text x="458.0" y="363.0" fill="#ff7b72" font-size="13" font-weight="bold" text-anchor="middle">-15 pp</text>
+</svg>
