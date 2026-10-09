@@ -1,5 +1,7 @@
 # Expected Completion (xComp) — how coverage and pressure change the odds of a completion
 
+### ▶ Live dashboard: https://ryumichalski.github.io/nfl-expected-completion/
+
 I built **Expected Completion (xComp)**, basically Expected Goals for NFL passing. It is a simple
 model that estimates how likely each pass was to be completed based on the coverage, down,
 distance, play-action, and whether the quarterback was pressured. Instead of just looking at

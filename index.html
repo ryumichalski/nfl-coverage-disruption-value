@@ -3,158 +3,218 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Expected Completion — how coverage and pressure change the odds of a completion</title>
+<title>Expected Completion (xComp) — Expected Goals for NFL passing</title>
 <style>
-  :root{--bg:#0e1116;--panel:#161b22;--ink:#e6edf3;--muted:#8b949e;--line:#30363d;--accent:#58a6ff}
+  :root{
+    --bg:#0b0e13; --panel:#151b24; --panel2:#0f141c; --ink:#eef3f8; --muted:#93a1b0;
+    --line:#273040; --accent:#5aa2ff; --good:#3fb950; --bad:#ff6b63; --warn:#e8a93a;
+  }
   *{box-sizing:border-box}
-  body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  header{padding:24px 28px 6px}
-  h1{margin:0 0 6px;font-size:23px}
-  .sub{color:var(--muted);max-width:960px}
-  .kpis{display:flex;gap:14px;flex-wrap:wrap;padding:14px 28px}
-  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px;min-width:150px}
-  .kpi .big{font-size:24px;font-weight:700}
-  .kpi .lab{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-  .wrap{display:flex;gap:20px;padding:10px 28px 40px;flex-wrap:wrap;align-items:flex-start}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
-  h2{font-size:16px;margin:0 0 4px}
-  .note{color:var(--muted);font-size:12px;margin-bottom:12px}
-  table{border-collapse:collapse}
-  th,td{padding:7px 9px;text-align:center;font-size:13px}
+  html{scroll-behavior:smooth}
+  body{margin:0;font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:radial-gradient(1200px 600px at 50% -200px,#17202e 0%,var(--bg) 60%);color:var(--ink)}
+  .container{max-width:1040px;margin:0 auto;padding:0 22px}
+  a{color:var(--accent)}
+
+  /* hero */
+  .hero{text-align:center;padding:52px 22px 20px}
+  .eyebrow{color:var(--accent);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  .hero h1{font-size:40px;margin:10px 0 8px;letter-spacing:-.5px}
+  .hero p{color:var(--muted);max-width:720px;margin:0 auto;font-size:16px}
+
+  /* predictor card */
+  .predictor{background:linear-gradient(180deg,#1a2330,#131a24);border:1px solid var(--line);
+             border-radius:18px;padding:26px;margin:26px 0 10px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .predictor h2{margin:0 0 2px;font-size:19px}
+  .predictor .hint{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .pgrid{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center}
+  @media(max-width:760px){.pgrid{grid-template-columns:1fr}}
+  .controls .field{margin-bottom:16px}
+  .controls label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+  select,input[type=number],input.lookup{background:#0b1016;color:var(--ink);border:1px solid var(--line);
+      border-radius:9px;padding:10px 12px;font-size:15px;width:100%}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;width:100%}
+  .seg button{flex:1;background:#0b1016;color:var(--muted);border:0;padding:10px 0;cursor:pointer;font-size:14px;transition:.12s}
+  .seg button.on{background:var(--accent);color:#07243f;font-weight:800}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+  /* dial */
+  .dial{display:flex;flex-direction:column;align-items:center;justify-content:center;
+        background:var(--panel2);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .ring{position:relative;width:208px;height:208px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .pct{font-size:48px;font-weight:800;line-height:1}
+  .ring .cap{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+  .support{font-size:13px;color:var(--muted);text-align:center;margin-top:14px;min-height:20px}
+  .fallback{color:var(--warn);font-weight:600}
+
+  /* sections */
+  section{padding:34px 0}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .sec-head h2{font-size:22px;margin:0}
+  .sec-head .k{color:var(--muted);font-size:13px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){.cols{grid-template-columns:1fr}}
+  .note{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+  table{border-collapse:collapse;width:100%}
+  th,td{padding:8px 10px;text-align:center;font-size:13px}
   th{color:var(--muted);font-weight:600;border-bottom:1px solid var(--line)}
-  .covcell{font-weight:600;text-align:left;color:var(--ink)}
-  .pill{display:inline-block;border-radius:5px;padding:5px 2px;min-width:66px;font-weight:700;color:#06240f}
-  .drop{font-size:11px;color:#ff7b72;font-weight:700}
-  .barwrap{display:flex;align-items:center;gap:8px;margin:4px 0}
-  .barlab{width:88px;text-align:right;color:var(--muted);font-size:12px}
-  svg{display:block}
+  td.l,th.l{text-align:left}
+  .covcell{font-weight:600;text-align:left}
+  .pill{display:inline-block;border-radius:6px;padding:5px 0;min-width:62px;font-weight:800;color:#07243f}
+  .sub11{font-size:10px;color:var(--muted)}
+  .drop{color:var(--bad);font-weight:700}
+  svg.cal{display:block;background:var(--panel2);border-radius:10px}
   .legend{color:var(--muted);font-size:12px;margin-top:10px}
-  .ex{font-size:13px;border-bottom:1px solid var(--line);padding:6px 0;display:flex;justify-content:space-between;gap:10px}
+  .ex{font-size:13px;border-bottom:1px solid var(--line);padding:8px 0;display:flex;justify-content:space-between;gap:10px;align-items:center}
   .ex .ctx{color:var(--muted)}
-  code{background:#0d1117;padding:1px 5px;border-radius:4px}
-  .foot{color:var(--muted);font-size:12px;margin:0 28px 32px;max-width:960px}
-  .foot b{color:var(--ink)}
-  .banner{margin:12px 28px 0;max-width:960px;background:#2d2410;border:1px solid #6b5417;
-          color:#e8d9a8;border-radius:8px;padding:10px 14px;font-size:13px}
+  .lk{font-size:14px;margin-top:12px;line-height:1.9}
+  .lk .big{font-size:22px;font-weight:800}
+  .banner{background:#2a230f;border:1px solid #5f4c16;color:#f0e2b4;border-radius:10px;padding:12px 16px;font-size:13px}
   .banner b{color:#fff}
-  .pred-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
-  .pred-row label{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
-  select,input[type=number]{background:#0d1117;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-  .seg button{background:#0d1117;color:var(--muted);border:0;padding:7px 12px;cursor:pointer;font-size:13px}
-  .seg button.on{background:var(--accent);color:#06240f;font-weight:700}
-  .result{display:flex;align-items:center;gap:18px;margin-top:6px}
-  .result .num{font-size:42px;font-weight:800}
-  .support{font-size:12px;color:var(--muted)}
-  .fallback{color:#e8a93a;font-weight:600}
-  .vtab{width:100%;margin-top:4px}
-  .vtab td,.vtab th{text-align:center}
-  .vtab td.l{text-align:left;color:var(--ink)}
-  input.lookup{width:150px}
-  .lk{font-size:13px;margin-top:8px;line-height:1.7}
-  .lk .big{font-size:20px;font-weight:700}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:4px}
+  @media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi .big{font-size:22px;font-weight:800}
+  .kpi .lab{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+  code{background:#0b1016;padding:1px 6px;border-radius:5px;font-size:12px}
+  .foot{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);margin-top:20px;padding:22px 0 50px}
+  .foot b{color:var(--ink)}
+  .divider{height:1px;background:var(--line);margin:6px 0 0}
 </style>
 </head>
 <body>
-<header>
-  <h1>Expected Completion (xComp)</h1>
-  <div class="sub">How much do defensive coverage and pass-rush pressure change the odds that a
-  pass is completed? xComp is a calibrated, cross-validated estimate of completion probability
-  from the play situation (coverage scheme, down, distance, play-action, and whether the defense
-  generated pressure). <b>Completion Over Expected (COE)</b> on a play is the actual result minus
-  xComp — a way to see which completions were harder than they looked. This is a reusable
-  play-level model, scored out-of-fold by game, not a QB leaderboard.</div>
-  <div class="banner">⚠ <b>Retrospective model, not a pre-snap forecast.</b> One of the inputs —
-  whether the defense generated pressure — is only known <i>during or after</i> the play. xComp
-  therefore describes the completion odds given the full in-play context, for review and analysis.
-  It is not a real-time, pre-snap prediction.</div>
-</header>
+<div class="container">
 
-<div class="kpis" id="kpis"></div>
+  <div class="hero">
+    <div class="eyebrow">NFL × AWS Big Data Bowl</div>
+    <h1>Expected Completion</h1>
+    <p>Expected Goals, but for NFL passing. How likely was each throw to be completed given the
+    coverage, down, distance, play-action, and whether the quarterback was pressured?</p>
+  </div>
 
-<div class="wrap">
-  <div class="panel" style="min-width:360px">
-    <h2>▶ Play Predictor</h2>
-    <div class="note">Pick a game situation and get the fitted xComp. Uses the exact full-data
-    rate table from <code>fit_scorer()</code>, embedded in this page. Shows how many training
-    plays back the estimate, and flags when it falls back to the league mean.</div>
-    <div class="pred-row">
-      <div><label>Coverage</label><select id="pCov"></select></div>
-      <div><label>Down</label><select id="pDown"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
-      <div><label>Yards to go</label><input type="number" id="pYtg" value="8" min="1" max="40" style="width:80px"/></div>
+  <!-- HERO: PLAY PREDICTOR -->
+  <div class="predictor">
+    <h2>Play Predictor</h2>
+    <div class="hint">Set the situation and see the expected completion probability. Each estimate
+    shows how many real plays it is based on.</div>
+    <div class="pgrid">
+      <div class="controls">
+        <div class="field">
+          <label>Coverage</label>
+          <select id="pCov"></select>
+        </div>
+        <div class="two">
+          <div class="field"><label>Down</label>
+            <select id="pDown"><option>1</option><option>2</option><option>3</option><option>4</option></select></div>
+          <div class="field"><label>Yards to go</label>
+            <input type="number" id="pYtg" value="8" min="1" max="40"/></div>
+        </div>
+        <div class="two">
+          <div class="field"><label>Pressure</label>
+            <div class="seg" id="pPress"><button data-v="0" class="on">Clean</button><button data-v="1">Pressured</button></div></div>
+          <div class="field"><label>Play-action</label>
+            <div class="seg" id="pPa"><button data-v="0" class="on">No</button><button data-v="1">Yes</button></div></div>
+        </div>
+      </div>
+      <div class="dial">
+        <div class="ring">
+          <svg width="208" height="208" viewBox="0 0 208 208">
+            <circle cx="104" cy="104" r="92" fill="none" stroke="#1e2735" stroke-width="18"/>
+            <circle id="pArc" cx="104" cy="104" r="92" fill="none" stroke="#5aa2ff" stroke-width="18"
+                    stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="578"/>
+          </svg>
+          <div class="center"><div class="pct" id="pNum">—</div><div class="cap">xComp</div></div>
+        </div>
+        <div class="support" id="pSup"></div>
+      </div>
     </div>
-    <div class="pred-row">
-      <div><label>Pressure (known in-play)</label>
-        <div class="seg" id="pPress"><button data-v="0" class="on">Clean</button><button data-v="1">Pressured</button></div></div>
-      <div><label>Play-action</label>
-        <div class="seg" id="pPa"><button data-v="0" class="on">No</button><button data-v="1">Yes</button></div></div>
+  </div>
+
+  <!-- KEY INSIGHT: coverage grid -->
+  <section id="insight">
+    <div class="sec-head"><h2>The insight: coverage and pressure move the odds</h2>
+      <span class="k">expected completion, clean vs under pressure</span></div>
+    <div class="panel">
+      <div class="note">Each cell is the model's expected completion for that coverage. The right
+      column is how far pressure drags it down. Man coverages (Cover-1, Cover-0) are the hardest to
+      complete against; pressure costs the most against zone shells. Cells shown where n ≥ 25.</div>
+      <div id="grid"></div>
+      <div class="legend">Colour runs red (low completion, good for the defense) to green (high).</div>
     </div>
-    <div class="result">
-      <div><div class="num" id="pNum">—</div><div class="support" id="pSup"></div></div>
+  </section>
+
+  <!-- TRY IT ON REAL PLAYS -->
+  <section id="plays">
+    <div class="sec-head"><h2>Try it on real plays</h2></div>
+    <div class="cols">
+      <div class="panel">
+        <h3 style="margin:0 0 2px">Historical play lookup</h3>
+        <div class="note">Enter a <code>gameId</code> and <code>playId</code> for the actual result,
+        the out-of-fold xComp, and Completion Over Expected.</div>
+        <div class="two" style="grid-template-columns:1fr 1fr auto;align-items:end;gap:12px">
+          <div><label class="note" style="margin:0 0 6px;display:block">gameId</label><input class="lookup" id="lkG" placeholder="2021090900"/></div>
+          <div><label class="note" style="margin:0 0 6px;display:block">playId</label><input class="lookup" id="lkP" placeholder="137"/></div>
+          <button id="lkBtn" style="background:var(--accent);color:#07243f;font-weight:800;border:0;border-radius:9px;padding:11px 16px;cursor:pointer">Look up</button>
+        </div>
+        <div class="lk" id="lkOut"><span class="support">Try game 2021090900, play 137.</span></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0 0 2px">Hardest completions made</h3>
+        <div class="note">Completed passes the model rated least likely to be caught. The best
+        examples of a throw beating the odds (big positive COE).</div>
+        <div id="hard"></div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="panel" style="min-width:300px">
-    <h2>🔎 Historical play lookup</h2>
-    <div class="note">Enter a <code>gameId</code> and <code>playId</code> to see the actual result,
-    the out-of-fold xComp, and COE for that specific pass.</div>
-    <div class="pred-row">
-      <div><label>gameId</label><input class="lookup" id="lkG" placeholder="2021090900"/></div>
-      <div><label>playId</label><input class="lookup" id="lkP" placeholder="137" style="width:100px"/></div>
-      <div style="align-self:flex-end"><button class="seg" id="lkBtn" style="padding:7px 14px;cursor:pointer;background:var(--accent);color:#06240f;font-weight:700;border:0;border-radius:6px">Look up</button></div>
+  <!-- METHODOLOGY -->
+  <section id="methodology">
+    <div class="sec-head"><h2>Methodology &amp; validation</h2>
+      <span class="k">how the model is built and why you can trust it</span></div>
+    <div class="divider"></div>
+
+    <div class="banner" style="margin:18px 0">⚠ <b>Retrospective model, not a pre-snap forecast.</b>
+      One input, whether the defense generated pressure, is only known during or after the play.
+      xComp describes completion odds given the full in-play context, for review and analysis. It is
+      not a real-time pre-snap prediction.</div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="cols" style="margin-top:20px">
+      <div class="panel">
+        <h3 style="margin:0 0 2px">Calibration</h3>
+        <div class="note">Plays grouped into deciles of predicted xComp. Dots on the diagonal mean a
+        predicted X% really completes about X% of the time.</div>
+        <svg id="cal" class="cal" width="340" height="300"></svg>
+        <div class="legend" id="calnote"></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin:0 0 2px">Holds out of time (chronological split)</h3>
+        <div class="note" id="chronoNote"></div>
+        <table id="chronoTab"></table>
+        <h3 style="margin:18px 0 2px">Features earn their place (ablation)</h3>
+        <div class="note">Each model scored out-of-fold. Lower log-loss, higher AUC is better.</div>
+        <table id="ablTab"></table>
+      </div>
     </div>
-    <div class="lk" id="lkOut"><span class="support">Try game 2021090900, play 137.</span></div>
-  </div>
 
-  <div class="panel" style="min-width:420px">
-    <h2>Does it hold out of time? (chronological validation)</h2>
-    <div class="note" id="chronoNote"></div>
-    <table class="vtab" id="chronoTab"></table>
-    <h2 style="margin-top:16px">Do our features earn their place? (ablation)</h2>
-    <div class="note">Each model scored out-of-fold. Lower log-loss / higher AUC is better.
-    Coverage and especially pressure are the distinctive inputs.</div>
-    <table class="vtab" id="ablTab"></table>
-  </div>
-</div>
+    <div class="foot">
+      <b>How it works.</b> xComp = P(complete | coverage, down, distance band, play-action, pressure),
+      estimated as shrunk grouped completion rates (pulled toward the league mean so rare situations
+      are not over-fit), scored with 5-fold cross-validation by game so no play is graded by a model
+      that saw it. Pressure is a PFF pass-rush label (any hurry, hit, or sack on the play). Pass
+      attempts only. <b>Honest limits:</b> xComp is for the play or situation, not a season QB
+      ranking (the per-player residual is not stable in a single 8-game sample), and it is not a
+      causal claim that a coverage caused the result. <b>Data:</b> NFL Next Gen Stats + PFF scouting,
+      2021, <b id="np"></b> pass attempts across <b id="ng"></b> games. The Play Predictor and the
+      play lookup use the identical fitted table as the Python <code>fit_scorer()</code>.
+    </div>
+  </section>
 
-<div class="wrap">
-  <div class="panel">
-    <h2>Coverage × pressure: expected completion</h2>
-    <div class="note">Each cell is mean xComp for that coverage, clean vs under pressure.
-    The red number is the drop in expected completion when the defense gets pressure. Only
-    cells with n&nbsp;≥&nbsp;25 shown.</div>
-    <div id="grid"></div>
-    <div class="legend">Colour: red = low expected completion (good for defense) → green = high.</div>
-  </div>
-
-  <div class="panel">
-    <h2>Is xComp trustworthy? (calibration)</h2>
-    <div class="note">Plays binned into deciles of predicted xComp. If the dots sit on the
-    diagonal, a predicted X% really completes about X% of the time.</div>
-    <svg id="cal" width="340" height="320"></svg>
-    <div class="legend" id="calnote"></div>
-  </div>
-
-  <div class="panel" style="max-width:380px">
-    <h2>Hardest completions made</h2>
-    <div class="note">Completed passes with the lowest xComp — the throws the model rated least
-    likely to be caught. A play-level use of COE.</div>
-    <div id="hard"></div>
-  </div>
-</div>
-
-<div class="foot">
-  Data: NFL Next Gen Stats + PFF scouting, 2021 (Big Data Bowl), <b id="np"></b> pass attempts
-  across <b id="ng"></b> games. Model: shrunk grouped completion rates over coverage × down ×
-  distance × play-action × pressure, evaluated out-of-fold by game (no leakage). Pressure is a PFF
-  pass-rush label (any hurry/hit/sack on the play). <b>Honest limits:</b> xComp is for the play /
-  situation, not a season QB ranking (the per-player residual is not stable in a single 8-game
-  sample); pressure is contemporaneous with the throw, so xComp describes the odds under those
-  conditions rather than claiming the coverage <i>caused</i> the result. Because pressure is an
-  in-play input, this is a <b>retrospective play-context model, not a pre-snap forecast</b>.
-  Validated two ways: 5-fold out-of-fold by game, and a chronological early-weeks→later-weeks
-  split (both shown above). The Play Predictor and the per-play lookup use the identical fitted
-  table as the Python <code>fit_scorer()</code>.
 </div>
 
 <script>
@@ -162,22 +222,12 @@ const P = {"meta":{"n_plays":7565,"n_games":122,"league_completion":0.6107,"base
 const M = P.meta;
 const $ = id => document.getElementById(id);
 
-// KPIs
-const kpis = [
-  ["League completion", (M.league_completion*100).toFixed(1)+"%"],
-  ["xComp vs baseline (logloss)", M.baseline_logloss.toFixed(3)+" → "+M.xcomp_logloss.toFixed(3)],
-  ["AUC", M.auc.toFixed(3)],
-  ["Calibration error", (M.calibration_mae*100).toFixed(1)+" pp"],
-  ["Clean → pressured xComp", (M.clean_xcomp*100).toFixed(0)+"% → "+(M.pressured_xcomp*100).toFixed(0)+"%"],
-];
-$("kpis").innerHTML = kpis.map(k=>`<div class="kpi"><div class="big">${k[1]}</div><div class="lab">${k[0]}</div></div>`).join("");
 $("np").textContent = M.n_plays.toLocaleString();
 $("ng").textContent = M.n_games;
 
 const rgb=a=>`rgb(${a[0]},${a[1]},${a[2]})`;
 function color(rate){
-  // 0.40 red -> 0.60 gold -> 0.75 green
-  const stops=[[0.40,[192,57,43]],[0.60,[217,179,16]],[0.75,[27,120,60]]];
+  const stops=[[0.40,[192,57,43]],[0.60,[217,179,16]],[0.75,[33,140,70]]];
   let r=rate;
   if(r<=stops[0][0])return rgb(stops[0][1]);
   if(r>=stops[2][0])return rgb(stops[2][1]);
@@ -186,56 +236,21 @@ function color(rate){
   return rgb(stops[2][1]);
 }
 
-// Grid: coverage rows, clean vs pressured
-const byCov={};
-P.grid.forEach(r=>{(byCov[r.coverage]=byCov[r.coverage]||{})[r.press]=r});
-// order coverages by clean xComp ascending (hardest first)
-const covOrder = Object.keys(byCov).sort((a,b)=>{
-  const ca=(byCov[a][0]||byCov[a][1]).xcomp, cb=(byCov[b][0]||byCov[b][1]).xcomp; return ca-cb;});
-let gh="<table><tr><th>Coverage</th><th>Clean</th><th>Pressured</th><th>Δ pressure</th></tr>";
-covOrder.forEach(cov=>{
-  const clean=byCov[cov][0], pres=byCov[cov][1];
-  const cC=clean?`<span class="pill" style="background:${color(clean.xcomp)}">${(clean.xcomp*100).toFixed(0)}%</span><br><span style="font-size:10px;color:#8b949e">n=${clean.n}</span>`:"—";
-  const pC=pres?`<span class="pill" style="background:${color(pres.xcomp)}">${(pres.xcomp*100).toFixed(0)}%</span><br><span style="font-size:10px;color:#8b949e">n=${pres.n}</span>`:"—";
-  const drop=(clean&&pres)?`<span class="drop">−${((clean.xcomp-pres.xcomp)*100).toFixed(0)} pp</span>`:"—";
-  gh+=`<tr><td class="covcell">${cov}</td><td>${cC}</td><td>${pC}</td><td>${drop}</td></tr>`;
-});
-gh+="</table>";
-$("grid").innerHTML=gh;
+// KPIs
+const kpis = [
+  ["League completion", (M.league_completion*100).toFixed(1)+"%"],
+  ["Log-loss vs baseline", M.baseline_logloss.toFixed(3)+" → "+M.xcomp_logloss.toFixed(3)],
+  ["AUC (out-of-fold)", M.auc.toFixed(3)],
+  ["Calibration error", (M.calibration_mae*100).toFixed(1)+" pp"],
+  ["Clean → pressured", (M.clean_xcomp*100).toFixed(0)+"% → "+(M.pressured_xcomp*100).toFixed(0)+"%"],
+];
+$("kpis").innerHTML = kpis.map(k=>`<div class="kpi"><div class="big">${k[1]}</div><div class="lab">${k[0]}</div></div>`).join("");
 
-// Calibration plot
-(function(){
-  const W=340,H=320,pad=46;
-  const x=v=>pad+v*(W-pad-14), y=v=>H-pad-v*(H-pad-14);
-  let s=`<rect x="0" y="0" width="${W}" height="${H}" fill="#0d1117"/>`;
-  // diagonal
-  s+=`<line x1="${x(0.4)}" y1="${y(0.4)}" x2="${x(0.8)}" y2="${y(0.8)}" stroke="#30363d" stroke-dasharray="4 4"/>`;
-  // axes ticks
-  [0.4,0.5,0.6,0.7,0.8].forEach(v=>{
-    s+=`<text x="${x(v)}" y="${H-pad+16}" fill="#8b949e" font-size="10" text-anchor="middle">${(v*100)|0}%</text>`;
-    s+=`<text x="${pad-8}" y="${y(v)+3}" fill="#8b949e" font-size="10" text-anchor="end">${(v*100)|0}%</text>`;
-  });
-  s+=`<text x="${W/2}" y="${H-8}" fill="#8b949e" font-size="11" text-anchor="middle">predicted xComp</text>`;
-  s+=`<text x="14" y="${H/2}" fill="#8b949e" font-size="11" text-anchor="middle" transform="rotate(-90 14 ${H/2})">observed completion</text>`;
-  P.calibration.forEach(d=>{ s+=`<circle cx="${x(d.pred)}" cy="${y(d.obs)}" r="5" fill="#58a6ff" opacity="0.9"/>`; });
-  $("cal").innerHTML=s;
-  $("calnote").textContent=`Mean gap between predicted and observed: ${(M.calibration_mae*100).toFixed(1)} percentage points across deciles.`;
-})();
-
-// Hardest completions
-$("hard").innerHTML = P.hardest.map(h=>{
-  const sit=`${h.coverage}, ${h.down}&amp;${h.yardsToGo}${h.press?", pressured":""}`;
-  return `<div class="ex"><span>game ${h.gameId} · play ${h.playId}<br><span class="ctx">${sit}</span></span>
-          <span class="pill" style="background:${color(h.xcomp)};align-self:center">${(h.xcomp*100).toFixed(0)}%</span></div>`;
-}).join("");
-
-// ---------- (1) PLAY PREDICTOR (mirrors fit_scorer() key logic exactly) ----------
-const PRED = P.predictor;
-const RATE = PRED.rate_table;           // { "coverage|down|ytg|pa|press": {xcomp, n} }
-const LEAGUE = PRED.league_mean;
-function ytgBin(y){ return y<=3 ? "short" : (y<=7 ? "medium" : "long"); }   // same thresholds as Python
-let pState = {press:"0", pa:"0"};
-// populate coverages
+// ---------- PLAY PREDICTOR (mirrors fit_scorer() key logic exactly) ----------
+const PRED=P.predictor, RATE=PRED.rate_table, LEAGUE=PRED.league_mean;
+const ARC_LEN=578; // 2*pi*92
+function ytgBin(y){ return y<=3 ? "short" : (y<=7 ? "medium" : "long"); }
+let pState={press:"0", pa:"0"};
 PRED.coverages.forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;$("pCov").appendChild(o);});
 $("pCov").value = PRED.coverages.includes("Cover-3") ? "Cover-3" : PRED.coverages[0];
 
@@ -254,50 +269,89 @@ function predict(){
   const key=[cov, dn, ytgBin(ytg), pState.pa, pState.press].join("|");
   const hit=RATE[key];
   const xc = hit ? hit.xcomp : LEAGUE;
+  const col=color(xc);
   $("pNum").textContent=(xc*100).toFixed(0)+"%";
-  $("pNum").style.color=color(xc);
+  $("pNum").style.color=col;
+  const arc=$("pArc"); arc.style.stroke=col;
+  arc.style.strokeDashoffset = ARC_LEN*(1-xc);
   if(hit){
-    $("pSup").innerHTML=`backed by <b>${hit.n.toLocaleString()}</b> training plays in this exact context`;
+    $("pSup").innerHTML=`based on <b>${hit.n.toLocaleString()}</b> real plays in this exact situation`;
   }else{
-    $("pSup").innerHTML=`<span class="fallback">no training plays for this exact context — using league mean (${(LEAGUE*100).toFixed(1)}%)</span>`;
+    $("pSup").innerHTML=`<span class="fallback">no plays for this exact situation — falling back to the league average (${(LEAGUE*100).toFixed(1)}%)</span>`;
   }
 }
 ["pCov","pDown","pYtg"].forEach(id=>$(id).addEventListener("input",predict));
 predict();
 
-// ---------- (2)+(3) CHRONOLOGICAL VALIDATION + ABLATION tables ----------
+// ---------- COVERAGE GRID ----------
+const byCov={};
+P.grid.forEach(r=>{(byCov[r.coverage]=byCov[r.coverage]||{})[r.press]=r});
+const covOrder = Object.keys(byCov).sort((a,b)=>{
+  const ca=(byCov[a][0]||byCov[a][1]).xcomp, cb=(byCov[b][0]||byCov[b][1]).xcomp; return ca-cb;});
+let gh="<table><tr><th class='l'>Coverage</th><th>Clean</th><th>Pressured</th><th>Δ pressure</th></tr>";
+covOrder.forEach(cov=>{
+  const clean=byCov[cov][0], pres=byCov[cov][1];
+  const cC=clean?`<span class="pill" style="background:${color(clean.xcomp)}">${(clean.xcomp*100).toFixed(0)}%</span><br><span class="sub11">n=${clean.n}</span>`:"—";
+  const pC=pres?`<span class="pill" style="background:${color(pres.xcomp)}">${(pres.xcomp*100).toFixed(0)}%</span><br><span class="sub11">n=${pres.n}</span>`:"—";
+  const drop=(clean&&pres)?`<span class="drop">−${((clean.xcomp-pres.xcomp)*100).toFixed(0)} pp</span>`:"—";
+  gh+=`<tr><td class="covcell">${cov}</td><td>${cC}</td><td>${pC}</td><td>${drop}</td></tr>`;
+});
+gh+="</table>"; $("grid").innerHTML=gh;
+
+// ---------- CALIBRATION ----------
+(function(){
+  const W=340,H=300,pad=44;
+  const x=v=>pad+(v-0.4)/0.4*(W-pad-14), y=v=>H-pad-(v-0.4)/0.4*(H-pad-14);
+  let s=`<line x1="${x(0.4)}" y1="${y(0.4)}" x2="${x(0.8)}" y2="${y(0.8)}" stroke="#2b3647" stroke-dasharray="4 4"/>`;
+  [0.4,0.5,0.6,0.7,0.8].forEach(v=>{
+    s+=`<text x="${x(v)}" y="${H-pad+16}" fill="#93a1b0" font-size="10" text-anchor="middle">${(v*100)|0}%</text>`;
+    s+=`<text x="${pad-8}" y="${y(v)+3}" fill="#93a1b0" font-size="10" text-anchor="end">${(v*100)|0}%</text>`;
+  });
+  s+=`<text x="${W/2}" y="${H-6}" fill="#93a1b0" font-size="11" text-anchor="middle">predicted xComp</text>`;
+  s+=`<text x="13" y="${H/2}" fill="#93a1b0" font-size="11" text-anchor="middle" transform="rotate(-90 13 ${H/2})">observed completion</text>`;
+  P.calibration.forEach(d=>{ s+=`<circle cx="${x(d.pred)}" cy="${y(d.obs)}" r="5" fill="#5aa2ff"/>`; });
+  $("cal").innerHTML=s;
+  $("calnote").textContent=`Mean gap between predicted and observed: ${(M.calibration_mae*100).toFixed(1)} percentage points.`;
+})();
+
+// ---------- CHRONO + ABLATION ----------
 const C=P.chrono;
 if(C){
   $("chronoNote").innerHTML=`Trained on weeks <b>${C.train_weeks}</b> (${C.n_train.toLocaleString()} plays),
-    tested on weeks <b>${C.test_weeks}</b> (${C.n_test.toLocaleString()} plays) — a true out-of-time split.`;
+    tested on weeks <b>${C.test_weeks}</b> (${C.n_test.toLocaleString()} plays), a true out-of-time split.`;
   $("chronoTab").innerHTML=
-    `<tr><th>metric</th><th>league-rate baseline</th><th>xComp model</th></tr>
+    `<tr><th class="l">metric</th><th>baseline</th><th>xComp</th></tr>
      <tr><td class="l">Log-loss</td><td>${C.baseline_logloss.toFixed(3)}</td><td><b>${C.model_logloss.toFixed(3)}</b></td></tr>
-     <tr><td class="l">Brier score</td><td>${C.baseline_brier.toFixed(3)}</td><td><b>${C.model_brier.toFixed(3)}</b></td></tr>
+     <tr><td class="l">Brier</td><td>${C.baseline_brier.toFixed(3)}</td><td><b>${C.model_brier.toFixed(3)}</b></td></tr>
      <tr><td class="l">AUC</td><td>0.500</td><td><b>${C.auc.toFixed(3)}</b></td></tr>
-     <tr><td class="l">Calibration error</td><td>—</td><td><b>${(C.calibration_mae*100).toFixed(1)} pp</b></td></tr>`;
-}else{
-  $("chronoNote").textContent="Chronological split unavailable (no week data).";
-}
+     <tr><td class="l">Calibration</td><td>—</td><td><b>${(C.calibration_mae*100).toFixed(1)} pp</b></td></tr>`;
+}else{ $("chronoNote").textContent="Chronological split unavailable."; }
 $("ablTab").innerHTML =
-  `<tr><th>model</th><th>log-loss</th><th>Brier</th><th>AUC</th></tr>` +
+  `<tr><th class="l">model</th><th>log-loss</th><th>Brier</th><th>AUC</th></tr>` +
   P.ablation.map(a=>`<tr><td class="l">${a.model}</td><td>${a.logloss.toFixed(3)}</td>
      <td>${a.brier.toFixed(3)}</td><td><b>${a.auc.toFixed(3)}</b></td></tr>`).join("");
 
-// ---------- (4) HISTORICAL PLAY LOOKUP ----------
+// ---------- HARDEST COMPLETIONS ----------
+$("hard").innerHTML = P.hardest.map(h=>{
+  const sit=`${h.coverage}, ${h.down}&amp;${h.yardsToGo}${h.press?", pressured":""}`;
+  return `<div class="ex"><span>game ${h.gameId} · play ${h.playId}<br><span class="ctx">${sit}</span></span>
+          <span class="pill" style="background:${color(h.xcomp)}">${(h.xcomp*100).toFixed(0)}%</span></div>`;
+}).join("");
+
+// ---------- PLAY LOOKUP ----------
 const LK=P.lookup;
 function doLookup(){
   const g=($("lkG").value||"").trim(), p=($("lkP").value||"").trim();
   const rec=LK[g+"_"+p];
-  if(!rec){ $("lkOut").innerHTML=`<span class="fallback">No pass attempt found for game ${g}, play ${p}. (Only pass attempts with coverage labels are modelled.)</span>`; return; }
+  if(!rec){ $("lkOut").innerHTML=`<span class="fallback">No pass attempt found for game ${g}, play ${p}.</span>`; return; }
   const res = rec.complete ? "COMPLETE" : "incomplete / INT";
   const coe = rec.coe>=0 ? "+"+rec.coe.toFixed(2) : rec.coe.toFixed(2);
   const sit=`${rec.coverage}, ${rec.down}&amp;${rec.ytg}${rec.press?", pressured":", clean"}${rec.pa?", play-action":""}`;
   $("lkOut").innerHTML=
-    `<div><span class="support">${sit}</span></div>
+    `<div><span class="support" style="text-align:left">${sit}</span></div>
      <div>Actual: <b>${res}</b></div>
-     <div>Out-of-fold xComp: <span class="big" style="color:${color(rec.xcomp)}">${(rec.xcomp*100).toFixed(0)}%</span></div>
-     <div>Completion Over Expected: <b style="color:${rec.coe>=0?'#3fb950':'#ff7b72'}">${coe}</b></div>`;
+     <div>xComp: <span class="big" style="color:${color(rec.xcomp)}">${(rec.xcomp*100).toFixed(0)}%</span></div>
+     <div>Completion Over Expected: <b style="color:${rec.coe>=0?'#3fb950':'#ff6b63'}">${coe}</b></div>`;
 }
 $("lkBtn").addEventListener("click",doLookup);
 $("lkP").addEventListener("keydown",e=>{if(e.key==="Enter")doLookup();});
