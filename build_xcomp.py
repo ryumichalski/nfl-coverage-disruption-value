@@ -1,10 +1,16 @@
 """
-Expected Completion under Coverage & Pressure (xComp) — model + outputs builder.
+Coverage Disruption Value (CDV) — model + outputs builder.
 
-xComp is a calibrated, out-of-fold estimate of the probability a pass is completed given
-the play's situation: defensive coverage scheme, down, distance, play-action, and whether the
-defense generated pressure. It is a reusable play-level model (shrunk grouped rates fit with
-5-fold cross-validation by game), not a season-long player ranking.
+The engine is Expected Completion (xComp): a calibrated, out-of-fold estimate of the probability
+a pass is completed given the play's situation (defensive coverage scheme, down, distance,
+play-action, and whether the defense generated pressure). It is a reusable play-level model
+(shrunk grouped rates fit with 5-fold cross-validation by game), not a season player ranking.
+
+The extension this project is built around is CDV, a defense-side value metric:
+    Coverage Disruption Value (CDV) = league-average completion - xComp
+i.e. the expected completion points a coverage + pass-rush situation removes versus an average
+dropback. The signature finding is that pressure's value is coverage-specific: pressure suppresses
+completion far more behind some coverages than others, which a single league-wide CPOE number hides.
 
 Completion Over Expected (COE) for a single play = actual completion (1/0) - xComp.
 
@@ -136,15 +142,17 @@ def build() -> dict:
     d["xcomp"] = oof_xcomp(d)
     d["coe"] = d.complete - d.xcomp
 
-    # per-play export: one row per pass attempt with its conditions, xComp and COE
+    # per-play export: one row per pass attempt with its conditions, xComp, COE and CDV
+    d["cdv"] = float(y.mean()) - d.xcomp   # Coverage Disruption Value (league mean - xComp)
     perplay = d[["gameId", "playId", "pff_passCoverage", "pff_passCoverageType",
                  "down", "yardsToGo", "ytg_bin", "pa", "press",
-                 "complete", "xcomp", "coe"]].copy()
+                 "complete", "xcomp", "coe", "cdv"]].copy()
     perplay = perplay.rename(columns={"pff_passCoverage": "coverage",
                                       "pff_passCoverageType": "coverageType",
                                       "pa": "playAction"})
     perplay["xcomp"] = perplay.xcomp.round(4)
     perplay["coe"] = perplay.coe.round(4)
+    perplay["cdv"] = perplay.cdv.round(4)
     perplay.to_csv(PERPLAY, index=False)
 
     base = np.full(len(d), y.mean())
@@ -275,16 +283,66 @@ def build() -> dict:
         key_order=["coverage", "down", "ytg_bin", "playAction", "press"],
     )
 
-    # ---- (4) per-play OOF lookup (gameId+playId -> actual, xComp, COE) ----
+    # ---- (4) per-play OOF lookup (gameId+playId -> actual, xComp, COE, CDV) ----
+    league = float(y.mean())
+    # Coverage Disruption Value for a play = league mean completion - xComp
+    # (expected completion points the defense's coverage+rush removed vs an average dropback)
+    d["cdv"] = league - d.xcomp
     lookup = {f"{int(r.gameId)}_{int(r.playId)}":
               dict(coverage=r.pff_passCoverage, down=int(r.down), ytg=int(r.yardsToGo),
                    press=int(r.press), pa=int(r.pa), complete=int(r.complete),
-                   xcomp=round(float(r.xcomp), 4), coe=round(float(r.coe), 4))
+                   xcomp=round(float(r.xcomp), 4), coe=round(float(r.coe), 4),
+                   cdv=round(float(r.cdv), 4))
               for r in d.itertuples()}
+
+    # ---- (5) COVERAGE DISRUPTION VALUE: pp of completion removed vs league avg ----
+    # per coverage x pressure, using the model's expected completion (stable, shrunk)
+    cdv_rows = []
+    cg = d.groupby(["pff_passCoverage", "press"]).agg(
+        n=("xcomp", "size"), xcomp=("xcomp", "mean"), actual=("complete", "mean")).reset_index()
+    cg = cg[cg.n >= 40]
+    for r in cg.itertuples():
+        cdv_rows.append(dict(coverage=r.pff_passCoverage, press=int(r.press), n=int(r.n),
+                             xcomp=round(r.xcomp, 4),
+                             cdv_pp=round(100 * (league - r.xcomp), 1)))
+
+    # ---- (6) PRESSURE AMPLIFICATION: how much pressure lowers completion, BY coverage ----
+    # the signature insight: pressure is worth more behind some coverages than others.
+    amp_rows = []
+    for cov, g in d.groupby("pff_passCoverage"):
+        c = g[g.press == 0]
+        p = g[g.press == 1]
+        if len(c) >= 60 and len(p) >= 40:
+            amp_rows.append(dict(coverage=cov, n_clean=int(len(c)), n_press=int(len(p)),
+                                 clean=round(float(c.complete.mean()), 4),
+                                 pressured=round(float(p.complete.mean()), 4),
+                                 penalty_pp=round(100 * float(c.complete.mean() - p.complete.mean()), 1)))
+    amp_rows.sort(key=lambda x: x["penalty_pp"])
+    # split-half stability of the amplification pattern (honesty: it is modest)
+    d["_half"] = np.where(d.gameId.rank(method="dense") % 2 == 0, "A", "B")
+    def _pen(sub):
+        o = {}
+        for cov, g in sub.groupby("pff_passCoverage"):
+            c, p = g[g.press == 0].complete, g[g.press == 1].complete
+            if len(c) >= 25 and len(p) >= 15:
+                o[cov] = c.mean() - p.mean()
+        return pd.Series(o)
+    aa, bb = _pen(d[d._half == "A"]), _pen(d[d._half == "B"])
+    jj = pd.concat([aa.rename("A"), bb.rename("B")], axis=1).dropna()
+    amp_stability = round(float(jj.A.corr(jj.B)), 3) if len(jj) > 2 else None
+
+    cdv = dict(
+        league_completion=round(league, 4),
+        by_cov_press=sorted(cdv_rows, key=lambda x: -x["cdv_pp"]),
+        amplification=amp_rows,
+        amplification_stability=amp_stability,
+        penalty_range=[amp_rows[0]["penalty_pp"], amp_rows[-1]["penalty_pp"]] if amp_rows else None,
+    )
 
     return dict(meta=meta, calibration=calibration, grid=grid_rows,
                 coverage=coverage_rows, hardest=hardest,
-                chrono=chrono, ablation=ablation, predictor=predictor, lookup=lookup)
+                chrono=chrono, ablation=ablation, predictor=predictor,
+                lookup=lookup, cdv=cdv)
 
 
 # ---------------------------------------------------------------------------
@@ -359,6 +417,14 @@ if __name__ == "__main__":
     print("\n  ABLATION (out-of-fold):")
     for a in payload["ablation"]:
         print(f"    {a['model']:46s} logloss={a['logloss']} brier={a['brier']} auc={a['auc']}")
+
+    cv = payload["cdv"]
+    print("\n  COVERAGE DISRUPTION VALUE (top situations, pp of completion removed vs league):")
+    for r in cv["by_cov_press"][:5]:
+        tag = "pressured" if r["press"] else "clean"
+        print(f"    {r['coverage']:10s} {tag:9s} CDV={r['cdv_pp']:+.1f} pp (n={r['n']})")
+    print(f"  Pressure penalty by coverage ranges {cv['penalty_range'][0]:.0f}–{cv['penalty_range'][1]:.0f} pp "
+          f"(split-half stability r={cv['amplification_stability']})")
 
     # quick demo of the reusable scorer (same table the website uses)
     sp = fit_scorer()

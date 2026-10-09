@@ -25,7 +25,7 @@ HTML = r"""<!doctype html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Expected Completion (xComp) — Expected Goals for NFL passing</title>
+<title>Coverage Disruption Value (CDV) — what each coverage + pass rush takes away</title>
 <style>
   :root{
     --bg:#0b0e13; --panel:#151b24; --panel2:#0f141c; --ink:#eef3f8; --muted:#93a1b0;
@@ -113,16 +113,20 @@ HTML = r"""<!doctype html>
 
   <div class="hero">
     <div class="eyebrow">NFL × AWS Big Data Bowl</div>
-    <h1>Expected Completion</h1>
-    <p>Expected Goals, but for NFL passing. How likely was each throw to be completed given the
-    coverage, down, distance, play-action, and whether the quarterback was pressured?</p>
+    <h1>Coverage Disruption Value</h1>
+    <p>Expected Completion (think Expected Goals for passing) tells you how likely a throw was to be
+    completed. <b>Coverage Disruption Value</b> builds on it to answer a defense's question: how many
+    expected completion points did this coverage, plus the pass rush, take away from an average
+    dropback? The headline finding is that pressure is worth far more behind some coverages than
+    others.</p>
   </div>
 
   <!-- HERO: PLAY PREDICTOR -->
   <div class="predictor">
     <h2>Play Predictor</h2>
-    <div class="hint">Set the situation and see the expected completion probability. Each estimate
-    shows how many real plays it is based on.</div>
+    <div class="hint">Set the situation. The dial is expected completion (xComp); below it is the
+    Coverage Disruption Value, the completion points this situation removes versus a league-average
+    dropback. Each estimate shows how many real plays it is based on.</div>
     <div class="pgrid">
       <div class="controls">
         <div class="field">
@@ -151,19 +155,35 @@ HTML = r"""<!doctype html>
           </svg>
           <div class="center"><div class="pct" id="pNum">—</div><div class="cap">xComp</div></div>
         </div>
+        <div id="pCdv" style="margin-top:14px;font-size:15px"></div>
         <div class="support" id="pSup"></div>
       </div>
     </div>
   </div>
 
-  <!-- KEY INSIGHT: coverage grid -->
-  <section id="insight">
-    <div class="sec-head"><h2>The insight: coverage and pressure move the odds</h2>
-      <span class="k">expected completion, clean vs under pressure</span></div>
+  <!-- SIGNATURE INSIGHT: pressure amplification by coverage -->
+  <section id="amp-sec">
+    <div class="sec-head"><h2>The finding: pressure is worth more behind some coverages</h2>
+      <span class="k">completion points lost when the rush gets home, by coverage</span></div>
     <div class="panel">
-      <div class="note">Each cell is the model's expected completion for that coverage. The right
-      column is how far pressure drags it down. Man coverages (Cover-1, Cover-0) are the hardest to
-      complete against; pressure costs the most against zone shells. Cells shown where n ≥ 25.</div>
+      <div class="note">This is what a single leaguewide completion-over-expected number hides. The
+      bar is how far completion drops when the defense generates pressure, <b>within</b> each
+      coverage. Getting pressure home is worth far more behind some calls than others.</div>
+      <div id="amp"></div>
+      <div class="legend" id="ampNote"></div>
+    </div>
+  </section>
+
+  <!-- CDV + coverage grid -->
+  <section id="insight">
+    <div class="sec-head"><h2>Coverage Disruption Value: points taken away</h2>
+      <span class="k">league mean − expected completion, clean vs under pressure</span></div>
+    <div class="panel">
+      <div class="note">CDV is the completion points a situation removes versus an average dropback
+      (league completion is <b id="lgc"></b>). Positive means the defense suppressed completion below
+      average. The grid shows expected completion itself, clean vs pressured, with the pressure drop
+      on the right. Cells shown where n ≥ 25.</div>
+      <div id="cdvtab" style="margin-bottom:18px"></div>
       <div id="grid"></div>
       <div class="legend">Colour runs red (low completion, good for the defense) to green (high).</div>
     </div>
@@ -229,9 +249,11 @@ HTML = r"""<!doctype html>
       estimated as shrunk grouped completion rates (pulled toward the league mean so rare situations
       are not over-fit), scored with 5-fold cross-validation by game so no play is graded by a model
       that saw it. Pressure is a PFF pass-rush label (any hurry, hit, or sack on the play). Pass
-      attempts only. <b>Honest limits:</b> xComp is for the play or situation, not a season QB
-      ranking (the per-player residual is not stable in a single 8-game sample), and it is not a
-      causal claim that a coverage caused the result. <b>Data:</b> NFL Next Gen Stats + PFF scouting,
+      attempts only. <b>Coverage Disruption Value (CDV)</b> = league-average completion − xComp, the
+      completion points a situation removes versus an average dropback. <b>Honest limits:</b> xComp is
+      for the play or situation, not a season QB ranking (the per-player residual is not stable in a
+      single 8-game sample); the pressure-by-coverage ordering is directionally real but noisy at one
+      season (split-half r ≈ 0.3); and this is not a causal claim that a coverage caused the result. <b>Data:</b> NFL Next Gen Stats + PFF scouting,
       2021, <b id="np"></b> pass attempts across <b id="ng"></b> games. The Play Predictor and the
       play lookup use the identical fitted table as the Python <code>fit_scorer()</code>.
     </div>
@@ -296,6 +318,11 @@ function predict(){
   $("pNum").style.color=col;
   const arc=$("pArc"); arc.style.stroke=col;
   arc.style.strokeDashoffset = ARC_LEN*(1-xc);
+  // Coverage Disruption Value = league mean - xComp (completion points removed)
+  const cdv=(LEAGUE-xc)*100;
+  const sign=cdv>=0?"+":"";
+  const cdvCol = cdv>=0 ? "#3fb950" : "#ff6b63";
+  $("pCdv").innerHTML=`Coverage Disruption Value: <b style="color:${cdvCol};font-size:18px">${sign}${cdv.toFixed(1)} pp</b>`;
   if(hit){
     $("pSup").innerHTML=`based on <b>${hit.n.toLocaleString()}</b> real plays in this exact situation`;
   }else{
@@ -319,6 +346,49 @@ covOrder.forEach(cov=>{
   gh+=`<tr><td class="covcell">${cov}</td><td>${cC}</td><td>${pC}</td><td>${drop}</td></tr>`;
 });
 gh+="</table>"; $("grid").innerHTML=gh;
+
+// ---------- CDV + AMPLIFICATION ----------
+const CDV=P.cdv;
+$("lgc").textContent=(CDV.league_completion*100).toFixed(1)+"%";
+
+// pressure amplification bars (sorted smallest -> largest penalty)
+(function(){
+  const rows=CDV.amplification.slice().sort((a,b)=>a.penalty_pp-b.penalty_pp);
+  const max=Math.max(...rows.map(r=>r.penalty_pp));
+  let h="";
+  rows.forEach(r=>{
+    const w=Math.max(3,(r.penalty_pp/max)*320);
+    h+=`<div style="display:flex;align-items:center;gap:12px;margin:7px 0">
+      <div style="width:92px;text-align:right;font-size:13px;color:var(--ink);font-weight:600">${r.coverage}</div>
+      <div style="height:22px;width:${w}px;border-radius:5px;background:linear-gradient(90deg,#5aa2ff,#ff6b63)"></div>
+      <div style="font-size:13px;color:var(--muted)">−${r.penalty_pp.toFixed(0)} pp
+        <span class="sub11">(clean ${(r.clean*100).toFixed(0)}% → pressured ${(r.pressured*100).toFixed(0)}%, n=${(r.n_clean+r.n_press).toLocaleString()})</span></div>
+    </div>`;
+  });
+  $("amp").innerHTML=h;
+  const stab = CDV.amplification_stability;
+  $("ampNote").innerHTML=`Pressure's completion penalty ranges about
+    <b>${CDV.penalty_range[0].toFixed(0)}–${CDV.penalty_range[1].toFixed(0)} pp</b> across coverages.
+    <span style="color:var(--warn)">Honest caveat:</span> with one 8-game season the exact ordering is
+    noisy (split-half stability r = ${stab}); the broad gap (pressure matters much more behind some
+    coverages) is solid, a precise ranking of the middle is not.`;
+})();
+
+// CDV table (coverage x pressure, points removed vs league)
+(function(){
+  const rows=CDV.by_cov_press.slice().sort((a,b)=>b.cdv_pp-a.cdv_pp).slice(0,10);
+  let h="<table><tr><th class='l'>Coverage</th><th>Pressure</th><th>xComp</th><th>CDV (pp removed)</th><th>n</th></tr>";
+  rows.forEach(r=>{
+    const cdvCol = r.cdv_pp>=0 ? "#3fb950" : "#ff6b63";
+    h+=`<tr><td class="l covcell">${r.coverage}</td>
+      <td>${r.press?"pressured":"clean"}</td>
+      <td><span class="pill" style="background:${color(r.xcomp)}">${(r.xcomp*100).toFixed(0)}%</span></td>
+      <td style="font-weight:800;color:${cdvCol}">${r.cdv_pp>=0?"+":""}${r.cdv_pp.toFixed(1)}</td>
+      <td class="sub11">${r.n.toLocaleString()}</td></tr>`;
+  });
+  h+="</table>";
+  $("cdvtab").innerHTML=h;
+})();
 
 // ---------- CALIBRATION ----------
 (function(){
